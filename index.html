@@ -59,11 +59,12 @@ button:hover {
   opacity: 0.9;
 }
 
-img {
+#previewContainer img {
   max-width: 100%;
-  margin-top: 20px;
+  margin-top: 10px;
   border-radius: 8px;
   border: 1px solid #ddd;
+  display: block;
 }
 </style>
 </head>
@@ -71,72 +72,83 @@ img {
 <div class="container">
   <h2>Image Compressor</h2>
 
-  <input type="file" id="imageInput" accept="image/*">
+  <input type="file" id="imageInput" accept="image/*" multiple>
 
-  <label for="widthInput">Width (px)</label>
-  <input type="number" id="widthInput" placeholder="Leave empty for original width">
+  <label>Quality: <span id="qualityValue">70%</span></label>
+  <input type="range" id="qualityInput" min="10" max="100" value="70">
 
-  <label for="heightInput">Height (px)</label>
-  <input type="number" id="heightInput" placeholder="Leave empty for original height">
+  <label>Max Width (px):</label>
+  <input type="number" id="widthInput" value="800">
 
-  <label for="qualityInput">Quality (0.1 - 1)</label>
-  <input type="range" id="qualityInput" min="0.1" max="1" step="0.05" value="0.7">
+  <label>Max Height (px):</label>
+  <input type="number" id="heightInput" value="800">
 
   <button onclick="compressImage()">Compress & Download</button>
 
-  <img id="preview" src="" alt="">
+  <div id="previewContainer"></div>
 </div>
 
 <script>
+// Update quality label dynamically
+const qualityInput = document.getElementById("qualityInput");
+const qualityValue = document.getElementById("qualityValue");
+qualityInput.addEventListener("input", () => {
+  qualityValue.innerText = qualityInput.value + "%";
+});
+
 function compressImage() {
   const input = document.getElementById("imageInput");
-  const preview = document.getElementById("preview");
+  const previewContainer = document.getElementById("previewContainer");
   const widthInput = document.getElementById("widthInput").value;
   const heightInput = document.getElementById("heightInput").value;
-  const quality = parseFloat(document.getElementById("qualityInput").value);
+  const quality = parseFloat(document.getElementById("qualityInput").value) / 100;
 
-  if (!input.files || !input.files[0]) {
-    alert("Please select an image first!");
+  if (!input.files || input.files.length === 0) {
+    alert("Please select at least one image!");
     return;
   }
 
-  const file = input.files[0];
-  const reader = new FileReader();
+  previewContainer.innerHTML = ""; // Clear previous previews
 
-  reader.onload = function(e) {
-    const img = new Image();
-    img.src = e.target.result;
+  Array.from(input.files).forEach((file, index) => {
+    const reader = new FileReader();
 
-    img.onload = function() {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
+    reader.onload = function(e) {
+      const img = new Image();
+      img.src = e.target.result;
 
-      let width = widthInput ? parseInt(widthInput) : img.width;
-      let height = heightInput ? parseInt(heightInput) : img.height;
+      img.onload = function() {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
 
-      // Maintain aspect ratio if only one dimension is provided
-      if (widthInput && !heightInput) {
-        height = (width / img.width) * img.height;
-      } else if (!widthInput && heightInput) {
-        width = (height / img.height) * img.width;
-      }
+        let width = widthInput ? parseInt(widthInput) : img.width;
+        let height = heightInput ? parseInt(heightInput) : img.height;
 
-      canvas.width = width;
-      canvas.height = height;
-      ctx.drawImage(img, 0, 0, width, height);
+        // Maintain aspect ratio if only one dimension is provided
+        if (widthInput && !heightInput) height = (width / img.width) * img.height;
+        else if (!widthInput && heightInput) width = (height / img.height) * img.width;
 
-      const compressedData = canvas.toDataURL("image/jpeg", quality);
-      preview.src = compressedData;
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
 
-      // Auto download
-      const a = document.createElement("a");
-      a.href = compressedData;
-      a.download = "compressed.jpg";
-      a.click();
+        const compressedData = canvas.toDataURL("image/jpeg", quality);
+
+        // Preview
+        const previewImg = document.createElement("img");
+        previewImg.src = compressedData;
+        previewContainer.appendChild(previewImg);
+
+        // Auto download
+        const a = document.createElement("a");
+        a.href = compressedData;
+        a.download = `compressed_${index + 1}.jpg`;
+        a.click();
+      };
     };
-  };
 
-  reader.readAsDataURL(file);
+    reader.readAsDataURL(file);
+  });
 }
 </script>
 </body>
