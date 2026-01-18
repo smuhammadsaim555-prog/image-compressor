@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -46,6 +47,7 @@ button {
   cursor: pointer;
   font-size: 16px;
   font-weight: 500;
+  transition: 0.3s;
 }
 
 button:hover {
@@ -69,43 +71,60 @@ img {
 </div>
 
 <script>
-<script>
 function compressImage() {
   const input = document.getElementById("imageInput");
-  const file = input.files[0];
-  if (!file) return alert("Please select an image");
+  const preview = document.getElementById("preview");
 
+  if (!input.files || !input.files[0]) {
+    alert("Please select an image first!");
+    return;
+  }
+
+  const file = input.files[0];
   const reader = new FileReader();
-  reader.readAsDataURL(file);
-  reader.onload = function(event) {
+
+  reader.onload = function(e) {
     const img = new Image();
-    img.src = event.target.result;
+    img.src = e.target.result;
 
     img.onload = function() {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
 
-      // Resize image
-      const maxWidth = 800; // max width
-      const scale = maxWidth / img.width;
-      canvas.width = maxWidth;
-      canvas.height = img.height * scale;
+      const MAX_WIDTH = 800; // max width
+      const MAX_HEIGHT = 800; // max height
+      let width = img.width;
+      let height = img.height;
 
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      // calculate new dimensions
+      if (width > height) {
+        if (width > MAX_WIDTH) {
+          height *= MAX_WIDTH / width;
+          width = MAX_WIDTH;
+        }
+      } else {
+        if (height > MAX_HEIGHT) {
+          width *= MAX_HEIGHT / height;
+          height = MAX_HEIGHT;
+        }
+      }
 
-      // Convert to compressed image
-      const compressedData = canvas.toDataURL("image/jpeg", 0.7); // quality 70%
+      canvas.width = width;
+      canvas.height = height;
+      ctx.drawImage(img, 0, 0, width, height);
 
-      // Preview
-      document.getElementById("preview").src = compressedData;
+      const compressedData = canvas.toDataURL("image/jpeg", 0.7); // 70% quality
+      preview.src = compressedData;
 
-      // Auto download
+      // auto download
       const a = document.createElement("a");
       a.href = compressedData;
       a.download = "compressed.jpg";
       a.click();
-    }
-  }
+    };
+  };
+
+  reader.readAsDataURL(file);
 }
 </script>
 </body>
